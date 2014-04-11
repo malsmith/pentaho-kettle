@@ -1489,7 +1489,7 @@ public class SalesforceInputDialog extends BaseStepDialog implements StepDialogI
       fieldPrecision = Integer.toString(field.getPrecision());
     }
 
-    addField(field.getLabel(), field.getName(), field.isIdLookup(), field.getType().getValue(), fieldLength,
+    addField(field.getName(), field.getName(), field.isIdLookup(), field.getType().getValue(), fieldLength,
         fieldPrecision);
   }
 

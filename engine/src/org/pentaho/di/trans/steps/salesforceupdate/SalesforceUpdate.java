@@ -29,6 +29,7 @@ import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowDataUtil;
+import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
@@ -38,7 +39,6 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.di.trans.steps.salesforceinput.SalesforceConnection;
-
 import com.sforce.soap.partner.sobject.SObject;
 
 
@@ -127,6 +127,10 @@ public class SalesforceUpdate extends BaseStep implements StepInterface
 	
 	private void writeToSalesForce(Object[] rowData) throws KettleException
 	{
+		String  upsertFieldNameTemp[] = null;
+		String upsertModuleFieldName = null;
+		String fieldToNullFieldName = null;
+
 		try {			
 
 			if (log.isDetailed()) logDetailed("Called writeToSalesForce with " + data.iBufferPos + " out of " + meta.getBatchSizeInt());
@@ -143,7 +147,20 @@ public class SalesforceUpdate extends BaseStep implements StepInterface
 					if(valueIsNull){
 						// The value is null
 						// We need to keep track of this field
-						fieldsToNull.add(meta.getUpdateLookup()[i]);
+						fieldToNullFieldName = meta.getUpdateLookup()[i];
+						if (!meta.getUseExternalId()[i]) {
+							fieldsToNull.add( fieldToNullFieldName );
+						} else {
+							// This is a external id formatted field in the form sobject:extern_id_lookup_field/module_fieldname
+							// so we want to check if there is a '/' in the field name if so get the string following that 
+							upsertFieldNameTemp = fieldToNullFieldName.split("\\/");
+							upsertModuleFieldName = upsertFieldNameTemp[upsertFieldNameTemp.length-1];
+							if (upsertModuleFieldName.endsWith("__r")) {
+								upsertModuleFieldName = upsertModuleFieldName.substring(0,upsertModuleFieldName.length()-3) + "__c";
+							}
+							fieldsToNull.add( upsertModuleFieldName);
+						}
+
 					} else {
 						updatefields.add(SalesforceConnection.createMessageElement(meta.getUpdateLookup()[i], rowData[data.fieldnrs[i]], meta.getUseExternalId()[i]));
 					}

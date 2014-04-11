@@ -1580,11 +1580,14 @@ public class Database implements VariableSpace, LoggingObjectInterface {
 
     // Create a Statement
     try {
+      int tmpRowSetSize = Integer.parseInt(this.getVariable("x-rowsetsize",((Integer)Const.FETCH_SIZE).toString()));
       log.snap(Metrics.METRIC_DATABASE_OPEN_QUERY_START, databaseMeta.getName());
       if (params != null) {
         log.snap(Metrics.METRIC_DATABASE_PREPARE_SQL_START, databaseMeta.getName());
         pstmt = connection.prepareStatement(databaseMeta.stripCR(sql), ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_READ_ONLY);
+        int maxRows = pstmt.getMaxRows();
+        int fs = tmpRowSetSize <= maxRows ? maxRows : tmpRowSetSize;
         log.snap(Metrics.METRIC_DATABASE_PREPARE_SQL_STOP, databaseMeta.getName());
 
         log.snap(Metrics.METRIC_DATABASE_SQL_VALUES_START, databaseMeta.getName());
@@ -1592,7 +1595,7 @@ public class Database implements VariableSpace, LoggingObjectInterface {
         log.snap(Metrics.METRIC_DATABASE_SQL_VALUES_STOP, databaseMeta.getName());
 
         if (canWeSetFetchSize(pstmt)) {
-          int fs = Const.FETCH_SIZE <= pstmt.getMaxRows() ? pstmt.getMaxRows() : Const.FETCH_SIZE;
+          // int fs = Const.FETCH_SIZE <= pstmt.getMaxRows() ? pstmt.getMaxRows() : Const.FETCH_SIZE;
 
           if (databaseMeta.isMySQLVariant() && databaseMeta.isStreamingResults()
               && getDatabaseMetaData().getDriverMajorVersion() == 3) {
@@ -1615,7 +1618,9 @@ public class Database implements VariableSpace, LoggingObjectInterface {
         sel_stmt = connection.createStatement();
         log.snap(Metrics.METRIC_DATABASE_CREATE_SQL_STOP, databaseMeta.getName());
         if (canWeSetFetchSize(sel_stmt)) {
-          int fs = Const.FETCH_SIZE <= sel_stmt.getMaxRows() ? sel_stmt.getMaxRows() : Const.FETCH_SIZE;
+          // int fs = Const.FETCH_SIZE <= sel_stmt.getMaxRows() ? sel_stmt.getMaxRows() : Const.FETCH_SIZE;
+          int maxRows = sel_stmt.getMaxRows();
+          int fs = tmpRowSetSize <= maxRows ? maxRows : tmpRowSetSize;
           if (databaseMeta.getDatabaseInterface() instanceof MySQLDatabaseMeta && databaseMeta.isStreamingResults()) {
             sel_stmt.setFetchSize(Integer.MIN_VALUE);
           } else {
@@ -1657,7 +1662,7 @@ public class Database implements VariableSpace, LoggingObjectInterface {
   public ResultSet openQuery(PreparedStatement ps, RowMetaInterface params, Object[] data)
       throws KettleDatabaseException {
     ResultSet res;
-
+    int tmpRowSetSize = Integer.parseInt(this.getVariable("x-rowsetsize",((Integer)Const.FETCH_SIZE).toString()));
     // Create a Statement
     try {
       log.snap(Metrics.METRIC_DATABASE_OPEN_QUERY_START, databaseMeta.getName());
@@ -1667,7 +1672,7 @@ public class Database implements VariableSpace, LoggingObjectInterface {
       log.snap(Metrics.METRIC_DATABASE_SQL_VALUES_STOP, databaseMeta.getName());
 
       if (canWeSetFetchSize(ps)) {
-        int fs = Const.FETCH_SIZE <= ps.getMaxRows() ? ps.getMaxRows() : Const.FETCH_SIZE;
+        int fs = tmpRowSetSize <= sel_stmt.getMaxRows() ? sel_stmt.getMaxRows() : tmpRowSetSize;
         if (databaseMeta.isMySQLVariant() && databaseMeta.isStreamingResults()
             && getDatabaseMetaData().getDriverMajorVersion() == 3) {
           ps.setFetchSize(Integer.MIN_VALUE);
